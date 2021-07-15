@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Common/Common.iml" filepath="$PROJECT_DIR$/Common/Common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/NettyClient/NettyClient.iml" filepath="$PROJECT_DIR$/NettyClient/NettyClient.iml" />
+      <module fileurl="file://$PROJECT_DIR$/NettyCloudBox2021.iml" filepath="$PROJECT_DIR$/NettyCloudBox2021.iml" />
+      <module fileurl="file://$PROJECT_DIR$/NettyCloudServer/NettyCloudServer.iml" filepath="$PROJECT_DIR$/NettyCloudServer/NettyCloudServer.iml" />
+    </modules>
+  </component>
+</project>

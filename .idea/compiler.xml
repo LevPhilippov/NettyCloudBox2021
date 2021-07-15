@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="NettyCloudServer" />
+        <module name="NettyClient" />
+        <module name="Common" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="Common" target="8" />
+      <module name="NettyClient" target="8" />
+      <module name="NettyCloudBox2021" target="1.5" />
+      <module name="NettyCloudServer" target="8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
