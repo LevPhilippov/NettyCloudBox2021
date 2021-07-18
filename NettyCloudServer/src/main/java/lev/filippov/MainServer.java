@@ -23,7 +23,7 @@ public class MainServer {
             .childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel ch) throws Exception {
-                    ch.pipeline().addLast(new ObjectDecoder(1024, ClassResolvers.cacheDisabled(null)), new ObjectEncoder(), new ObjectEchoHandler(), new ObjectEchoHandler());
+                    ch.pipeline().addLast(new ObjectDecoder(1024, ClassResolvers.cacheDisabled(null)), new ObjectEncoder(), new ServiceMessageHandler(), new FileMessageHandler());
                 }
             }).childOption(ChannelOption.SO_KEEPALIVE, true);
 
