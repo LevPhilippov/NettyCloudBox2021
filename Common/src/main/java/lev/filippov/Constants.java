@@ -13,6 +13,10 @@ public class Constants {
     public static final String LOCAL_PATH = "localPath";
     //ParamsMap key for remote path
     public static final String REMOTE_PATH = "remotePath";
+    //max bya array for one messagefile size in bytes
+    public static final int MAX_BYTE_ARRAY_SIZE = 1024*100;
+    //max messagefile size
+    public static final int MAX_MESSAGE_SIZE = MAX_BYTE_ARRAY_SIZE*2;
 
 
 }

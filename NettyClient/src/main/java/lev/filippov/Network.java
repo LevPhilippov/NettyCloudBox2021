@@ -6,8 +6,6 @@ import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,7 +26,7 @@ public class Network {
     }
 
     public void start() throws IOException {
-        encoder = new ObjectEncoderOutputStream(socket.getOutputStream(), Message.MAX_MESSAGE_SIZE);
+        encoder = new ObjectEncoderOutputStream(socket.getOutputStream(), MAX_MESSAGE_SIZE);
         decoder = new ObjectDecoderInputStream(socket.getInputStream());
         threadPool.execute(() -> {
             while(true) {
@@ -37,7 +35,9 @@ public class Network {
                     if (msg instanceof String)
                         System.out.println((String) msg);
                     if(msg instanceof FileMessage) {
-                        ClientUtils.writeSmallFile((FileMessage)msg);
+                        ClientUtils.getFromChannelToFile((FileMessage) msg);
+                    } else {
+                        System.out.println(msg);
                     }
                 } catch (ClassNotFoundException | IOException e) {
                     e.printStackTrace();
@@ -49,27 +49,18 @@ public class Network {
                 BufferedReader reader = new BufferedReader(isr))
             {
                 while (true) {
+                    //bloking oparetion
                     String line = reader.readLine();
+
                     if(line.startsWith("get")) {
                         ServiceMessage sm = new ServiceMessage();
                         sm.setMessageType(MessageType.GET_FILE);
-                        sm.getParametersMap().put(LOCAL_PATH, "\\fold\\");
-                        sm.getParametersMap().put(REMOTE_PATH, "fold\\fol2\\folder\\2.txt" );
+                        sm.getParametersMap().put(LOCAL_PATH, "fold/doc0.pdf");
+                        sm.getParametersMap().put(REMOTE_PATH, "doc0.pdf" );
                         encoder.writeObject(sm);
                         encoder.flush();
-                        continue;
-                    }
-                    Path filePath = Paths.get(line);
-                    if (!Files.exists(filePath)) {
-                        System.out.println("Файл отсутствует или адрес указан не верно!");
-                        continue;
-                    }
-                    if (Files.size(filePath) <= Message.MAX_MESSAGE_SIZE) {
-                        FileMessage msg = new FileMessage();
-                        msg.setBytes(Files.readAllBytes(filePath));
-                        msg.setRemotePath("fold\\fol2\\folder\\2.txt");
-                        encoder.writeObject(msg);
-                        encoder.flush();
+                    } else  {
+                                ClientUtils.writeToChannel(encoder, Paths.get(line), Paths.get(line).getFileName().toString());
                     }
                 }
             } catch (IOException e) {

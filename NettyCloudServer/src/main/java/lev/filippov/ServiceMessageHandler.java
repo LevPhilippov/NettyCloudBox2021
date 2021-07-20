@@ -15,8 +15,7 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
             Map<String, Object> params = ((ServiceMessage)msg).getParametersMap();
             switch (((ServiceMessage) msg).getMessageType()){
                 case GET_FILE:
-                    System.out.println("GJKEXT!");
-                    sendFileToClient(ctx, params);
+                    ServerUtils.writeToChannel(ctx,(ServiceMessage) msg);
                     break;
                 default: break;
             }
