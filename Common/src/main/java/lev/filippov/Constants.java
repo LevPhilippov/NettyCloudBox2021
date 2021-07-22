@@ -1,8 +1,5 @@
 package lev.filippov;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.*;
 
 public class Constants {
     //server relative path
@@ -19,4 +16,5 @@ public class Constants {
     public static final int MAX_MESSAGE_SIZE = MAX_BYTE_ARRAY_SIZE*2;
 
 
+    public static final String FILES_LIST = "pathList";
 }

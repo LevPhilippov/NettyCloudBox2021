@@ -1,17 +1,17 @@
 package lev.filippov;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static lev.filippov.Constants.*;
 
@@ -108,7 +108,7 @@ public class ServerUtils {
         try(FileChannel fileChannel = new RandomAccessFile(localPath.toFile(),"r").getChannel()) {
             int read;
             byte[] bytes;
-            while ((read = fileChannel.read(byteBuffer)) !=-1 || part==0) {
+            while ((read = fileChannel.read(byteBuffer)) !=-1 || part==0/*второе условие позволяет отправить пустой файл, например 1.txt без данных*/) {
                 byteBuffer.flip();
 
                 bytes = new byte[read];
@@ -116,7 +116,7 @@ public class ServerUtils {
                 fileMessage.setParts(parts);
                 fileMessage.setPart(part++);
                 fileMessage.setBytes(bytes);
-                fileMessage.setRemotePath((String) msg.getParametersMap().get(LOCAL_PATH));
+                fileMessage.setRemotePath((String) msg.getParametersMap().get(LOCAL_PATH) + localPath.getFileName());
 
                 ctx.writeAndFlush(fileMessage);
                 byteBuffer.clear();
@@ -125,5 +125,23 @@ public class ServerUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void sendFilesList(ChannelHandlerContext ctx, ServiceMessage sm) {
+        Path path = getLocalPath((String) sm.getParametersMap().get(REMOTE_PATH));
+        try {
+            List<String> pathList = Files.walk(path, 1, FileVisitOption.FOLLOW_LINKS).filter(p -> !p.equals(path))
+                    .map(p -> p.getFileName().toString()).collect(Collectors.toList());
+
+            for (String s : pathList) {
+                System.out.println(s);
+            }
+
+            sm.getParametersMap().put(Constants.FILES_LIST, pathList);
+            ctx.writeAndFlush(sm);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }

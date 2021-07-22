@@ -8,12 +8,25 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 
+import java.io.IOException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class MainServer {
     public static void main(String[] args) {
         new MainServer().start();
     }
 
     private void start() {
+        try {
+            Class.forName("lev.filippov.PersistanceBean");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
         NioEventLoopGroup boss = new NioEventLoopGroup(1);
         NioEventLoopGroup child = new NioEventLoopGroup();
         try {
@@ -26,6 +39,7 @@ public class MainServer {
                     ch.pipeline().addLast(
                             new ObjectDecoder(Constants.MAX_MESSAGE_SIZE, ClassResolvers.cacheDisabled(null)),
                             new ObjectEncoder(),
+                            new AuthHandler(),
                             new ServiceMessageHandler(),
                             new FileMessageHandler());
                 }

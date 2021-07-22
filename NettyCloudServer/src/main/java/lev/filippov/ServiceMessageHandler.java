@@ -12,12 +12,18 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ServiceMessage) {
-            Map<String, Object> params = ((ServiceMessage)msg).getParametersMap();
-            switch (((ServiceMessage) msg).getMessageType()){
+            ServiceMessage sm = (ServiceMessage) msg;
+            Map<String, Object> params = (sm.getParametersMap());
+            switch (sm.getMessageType()) {
                 case GET_FILE:
-                    ServerUtils.writeToChannel(ctx,(ServiceMessage) msg);
+                    ServerUtils.writeToChannel(ctx,sm);
                     break;
-                default: break;
+                case GET_STRUCTURE:
+                    ServerUtils.sendFilesList(ctx, sm);
+                    break;
+                default:
+                    System.out.println("Unknown command " + sm.getMessageType());
+                    break;
             }
         } else
             ctx.fireChannelRead(msg);

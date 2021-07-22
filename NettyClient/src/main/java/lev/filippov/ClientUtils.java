@@ -1,6 +1,8 @@
 package lev.filippov;
 
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -13,6 +15,7 @@ import java.nio.file.StandardOpenOption;
 import static lev.filippov.Constants.*;
 
 public class ClientUtils {
+        private static final Logger logger = LogManager.getLogger(ClientUtils.class.getName());
 
 //    public static void writeSmallFile(FileMessage fileMessage) {
 //        try {
@@ -91,11 +94,16 @@ public class ClientUtils {
 
             if(msg.getPart().equals(0L)) {
                 Files.createFile(localPath);
-                System.out.printf("Начинается копирование файла %s", localPath.getFileName());
+                logger.info("Начинается копирование файла {}", localPath.getFileName());
+//                System.out.printf("Начинается копирование файла %s", localPath.getFileName());
             }
-
+                logger.info("Получена часть {} из {} ", msg.getPart() , msg.getParts());
             System.out.println("Получена часть " +  msg.getPart() + " из " + msg.getParts());
             Files.write(localPath, msg.getBytes(), StandardOpenOption.APPEND);
+
+            if(msg.getPart().equals(msg.getParts())){
+                System.out.println("Copying completed!");
+            }
 
         } catch (IOException e) {
             e.printStackTrace();

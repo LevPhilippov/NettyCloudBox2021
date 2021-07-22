@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS cloud_users;
+CREATE TABLE cloud_users (
+id serial,
+login text not null unique,
+password text not null,
+PRIMARY KEY(id));
+INSERT INTO cloud_users (login, password) VALUES ('qwerty', '827ccb0eea8a706c4c34a16891f84e7b');
