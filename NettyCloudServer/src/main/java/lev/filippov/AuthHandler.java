@@ -12,12 +12,14 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof AuthKey) {
+            System.out.println("Получен запрос авторизации");
             AuthKey authKey = (AuthKey) msg;
             if(PersistanceBean.isUserExist(authKey.getLogin(), authKey.getPassword())){
                 authKey.setUuid(UUID.randomUUID());
                 authKey.setTimestamp(new Timestamp(System.currentTimeMillis()));
                 this.authKey = authKey;
                 ctx.writeAndFlush(authKey);
+                System.out.println("Отправлено ответ.");
             }
         } else {
             Message message = (Message) msg;

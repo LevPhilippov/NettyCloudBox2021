@@ -28,7 +28,7 @@ public class Network {
     private ObjectDecoderInputStream decoder;
     private ExecutorService threadPool;
     private AuthKey authKey;
-    private String currentRemoteFolderPath;
+    public static String currentRemoteFolderPath;
 
 
     public static void main(String[] args) throws IOException {
@@ -162,7 +162,6 @@ public class Network {
                     else {
                         String[] tokens = line.split("\\s");
 
-                        //TODO: составить запрос на отправку файлов в каталоге
                         if (tokens[0].equals("dl")) {
                             ServiceMessage sm = new ServiceMessage(authKey);
                             sm.setMessageType(MessageType.GET_STRUCTURE);
@@ -181,6 +180,7 @@ public class Network {
                             encoder.writeObject(sm);
                             encoder.flush();
                         }  else if (line.startsWith("send"))   {
+                            //todo: дописать логику с токенами и передачу нескольких файлов подряд
                             ClientUtils.writeToChannel(encoder, Paths.get(line), Paths.get(line).getFileName().toString());
                         }
                     }
