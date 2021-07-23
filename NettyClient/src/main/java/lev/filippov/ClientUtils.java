@@ -93,16 +93,17 @@ public class ClientUtils {
             Path localPath = getLocalPath(msg.getRemotePath());
 
             if(msg.getPart().equals(0L)) {
+                if (!Files.exists(localPath.getParent())) {
+                    Files.createDirectories(localPath.getParent());
+                }
                 Files.createFile(localPath);
                 logger.info("Начинается копирование файла {}", localPath.getFileName());
-//                System.out.printf("Начинается копирование файла %s", localPath.getFileName());
             }
                 logger.info("Получена часть {} из {} ", msg.getPart() , msg.getParts());
-            System.out.println("Получена часть " +  msg.getPart() + " из " + msg.getParts());
             Files.write(localPath, msg.getBytes(), StandardOpenOption.APPEND);
 
             if(msg.getPart().equals(msg.getParts())){
-                System.out.println("Copying completed!");
+                System.out.println("Copying completed to " + localPath);
             }
 
         } catch (IOException e) {

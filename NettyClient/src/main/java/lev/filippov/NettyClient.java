@@ -126,9 +126,14 @@ public class NettyClient {
                         }
                         channel.writeAndFlush(sm);
                     } else if(tokens[0].equals("get")) {
+                        //message must be like {get folder\file to folder\}
                         ServiceMessage sm = new ServiceMessage(authKey);
                         sm.setMessageType(MessageType.GET_FILE);
-                        sm.getParametersMap().put(LOCAL_PATH, "");
+                        if (tokens[3] != null) {
+                            sm.getParametersMap().put(LOCAL_PATH, tokens[3]);
+                        } else {
+                            sm.getParametersMap().put(LOCAL_PATH, "");
+                        }
                         sm.getParametersMap().put(REMOTE_PATH, tokens[1]);
                         channel.writeAndFlush(sm);
                     }  else if (line.startsWith("send"))   {

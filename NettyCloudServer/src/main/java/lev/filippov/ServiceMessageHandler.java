@@ -4,7 +4,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import java.util.Map;
-import static lev.filippov.ServerUtils.*;
 
 
 public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
@@ -16,10 +15,10 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
             Map<String, Object> params = (sm.getParametersMap());
             switch (sm.getMessageType()) {
                 case GET_FILE:
-                    ServerUtils.writeToChannel(ctx,sm);
+                    ServerUtils.writeToChannelManager(ctx,sm);
                     break;
                 case GET_STRUCTURE:
-                    ServerUtils.sendFilesList(ctx, sm);
+                    ServerUtils.sendFilesListManager(ctx, sm);
                     break;
                 default:
                     System.out.println("Unknown command " + sm.getMessageType());
