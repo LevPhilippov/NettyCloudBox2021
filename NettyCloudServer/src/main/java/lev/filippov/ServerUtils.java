@@ -81,7 +81,7 @@ public class ServerUtils {
     }
 
     private static Path getLocalPath(String localPath) {
-        return Paths.get(SERVER_RELATIVE_PATH, localPath);
+        return localPath.equals("root") ? Paths.get(SERVER_RELATIVE_PATH): Paths.get(SERVER_RELATIVE_PATH, localPath);
     }
 
     static void writeToChannel(ChannelHandlerContext ctx, ServiceMessage msg) {
@@ -130,7 +130,7 @@ public class ServerUtils {
     public static void sendFilesList(ChannelHandlerContext ctx, ServiceMessage sm) {
         Path path = getLocalPath((String) sm.getParametersMap().get(REMOTE_PATH));
         try {
-            List<String> pathList = Files.walk(path, 1, FileVisitOption.FOLLOW_LINKS).filter(p -> !p.equals(path))
+            List<String> pathList = Files.walk(path, 1, FileVisitOption.FOLLOW_LINKS)/*.filter(p -> !p.equals(path))*/
                     .map(p -> p.getFileName().toString()).collect(Collectors.toList());
 
             for (String s : pathList) {

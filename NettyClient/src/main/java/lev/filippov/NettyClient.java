@@ -31,7 +31,7 @@ public class NettyClient {
     private AuthKey authKey;
     private Logger logger = LogManager.getLogger(this.getClass().getName());
     private Channel channel;
-    public static String currentRemoteFolderPath = "";
+    public static String currentRemoteFolderPath = "root";
 
     public NettyClient(String url, int port) {
         this.url = url;
@@ -76,7 +76,6 @@ public class NettyClient {
     }
 
     private void startCommandLine() {
-        //TODO: сделать рефактор на читаемый код
         try(InputStreamReader isr = new InputStreamReader(System.in, StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(isr))
         {
@@ -117,13 +116,13 @@ public class NettyClient {
                 else {
                     String[] tokens = line.split("\\s");
 
-                    if (tokens[0].equals("dl")) {
+                    if (tokens[0].equals("gs")) {
                         ServiceMessage sm = new ServiceMessage(authKey);
                         sm.setMessageType(MessageType.GET_STRUCTURE);
                         if (tokens.length == 2) {
                             sm.getParametersMap().put(REMOTE_PATH,tokens[1]);
                         } else {
-                            sm.getParametersMap().put(REMOTE_PATH, currentRemoteFolderPath);
+                            sm.getParametersMap().put(REMOTE_PATH, "root");
                         }
                         channel.writeAndFlush(sm);
                     } else if(tokens[0].equals("get")) {
