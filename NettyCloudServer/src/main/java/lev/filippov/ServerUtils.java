@@ -129,9 +129,24 @@ public class ServerUtils {
 
     public static void sendFilesList(ChannelHandlerContext ctx, ServiceMessage sm) {
         Path path = getLocalPath((String) sm.getParametersMap().get(REMOTE_PATH));
+        if(!Files.exists(path)){
+            sm.getParametersMap().put(MESSAGE, "No such folder!");
+            sm.setMessageType(MessageType.MESSAGE);
+            ctx.writeAndFlush(sm);
+        }
         try {
-            List<String> pathList = Files.walk(path, 1, FileVisitOption.FOLLOW_LINKS)/*.filter(p -> !p.equals(path))*/
-                    .map(p -> p.getFileName().toString()).collect(Collectors.toList());
+            List<String> pathList = Files.walk(path, 1, FileVisitOption.FOLLOW_LINKS).filter(new Predicate<Path>() {
+                @Override
+                public boolean test(Path p) {
+                    return !p.equals(path);
+                }
+            })
+                    .map(new Function<Path, String>() {
+                        @Override
+                        public String apply(Path p) { ;
+                            return Files.isDirectory(p) ? p.getFileName().toString()+"\\" : p.getFileName().toString();
+                        }
+                    }).collect(Collectors.toList());
 
             for (String s : pathList) {
                 System.out.println(s);

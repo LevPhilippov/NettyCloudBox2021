@@ -10,8 +10,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.List;
 
-import static lev.filippov.Constants.FILES_LIST;
-import static lev.filippov.Constants.REMOTE_PATH;
+import static lev.filippov.Constants.*;
 
 public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
 
@@ -44,6 +43,9 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
                     for (String s : filesList) {
                         System.out.println(s);
                     }
+                    break;
+                case MESSAGE:
+                    System.out.println(sm.getParametersMap().get(MESSAGE));
                     break;
                 default:
                     System.out.println("Unknown message format!");
