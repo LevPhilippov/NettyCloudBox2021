@@ -16,7 +16,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -125,20 +124,20 @@ public class NettyClient {
                             sm.getParametersMap().put(REMOTE_PATH, "root");
                         }
                         channel.writeAndFlush(sm);
-                    } else if(tokens[0].equals("get")) {
-                        //message must be like {get folder\file to folder\}
+                    } else if(tokens[0].equals("get") && tokens[2].equals("to")) {
+                        //query must be like {get folder(or file) to folder\}
                         ServiceMessage sm = new ServiceMessage(authKey);
                         sm.setMessageType(MessageType.GET_FILE);
-                        if (tokens[3] != null) {
-                            sm.getParametersMap().put(LOCAL_PATH, tokens[3]);
-                        } else {
-                            sm.getParametersMap().put(LOCAL_PATH, "");
-                        }
+                            if (tokens[3] != null) {
+                                sm.getParametersMap().put(LOCAL_PATH, tokens[3]);
+                            } else {
+                                sm.getParametersMap().put(LOCAL_PATH, "");
+                            }
                         sm.getParametersMap().put(REMOTE_PATH, tokens[1]);
                         channel.writeAndFlush(sm);
-                    }  else if (line.startsWith("send"))   {
-//                        //todo: дописать логику с токенами и передачу нескольких файлов подряд
-//                        ClientUtils.writeToChannel(encoder, Paths.get(line), Paths.get(line).getFileName().toString());
+                    }  else if (line.startsWith("send") && tokens[2].equals("to"))   {
+                        //query must be like {send localfolder(or file) to folder\}
+                        ClientUtils.writeToChannelManager(channel,tokens[1], tokens[3], authKey);
                     }
                 }
                 //encounter shutdown

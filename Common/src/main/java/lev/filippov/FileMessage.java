@@ -7,8 +7,9 @@ public class FileMessage extends Message{
     private Long part;
     private Long parts;
 
-    public FileMessage() {
+    public FileMessage(AuthKey authKey) {
         type = Message.FILE;
+        this.authKey = authKey;
     }
 
     public void setBytes(byte[] bytes) {

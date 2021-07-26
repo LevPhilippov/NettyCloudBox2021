@@ -9,7 +9,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static lev.filippov.Constants.*;
@@ -41,32 +40,15 @@ public class ServerUtils {
         }
     }
 
-    public static void sendFileToClient(ChannelHandlerContext ctx, Map<String, Object> params) {
-        Path localPath = Paths.get(SERVER_RELATIVE_PATH, (String) params.get(REMOTE_PATH));
-        if (Files.isDirectory(localPath)) {
-            System.out.println("Directory!");
-            //sendStructure(ctx, params);
-            return;
-        }
-        if (Files.exists(localPath)) {
-            FileMessage fileMessage = new FileMessage();
-            fileMessage.setRemotePath((String) params.get(LOCAL_PATH) + localPath.getFileName().toString());
-            try {
-                fileMessage.setBytes(Files.readAllBytes(localPath));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            ctx.writeAndFlush(fileMessage);
-        } else
-            System.out.println("File not exist!");
-    }
-
     static void getFromChannelToFile(FileMessage msg) {
         try {
             checkFileMessageDatNonNull(msg);
+            //TODO: Нужно бороться с конкатенацией, если не указана слэш
             Path localPath = getLocalPath(msg.getRemotePath());
 
             if (msg.getPart().equals(0L)) {
+                if(!Files.exists(localPath.getParent()))
+                    Files.createDirectories(localPath.getParent());
                 Files.createFile(localPath);
                 System.out.printf("Начинается копирование файла %s", localPath.getFileName());
             }
@@ -99,18 +81,9 @@ public class ServerUtils {
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                         msg.getParametersMap().put(REMOTE_PATH, localPath.getParent().relativize(file).toString());
                         System.out.println("Relative path for " + file + " is " + msg.getParametersMap().get(REMOTE_PATH));
-                        writeToChannelManager(ctx, msg);
+                        writeFileToChannel(ctx, msg);
                         return FileVisitResult.CONTINUE;
                     }
-//                    @Override
-//                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-////                        команда на создание каталога у клиента;
-////                         msg.getParametersMap().put(REMOTE_PATH, dir.relativize(localPath));
-////                         createFolderCommand(ctx, msg);
-////                        pathQueue.add(dir);
-//                        return FileVisitResult.CONTINUE;
-//                    }
-//                });
                 });
 
             } catch (IOException e) {
@@ -144,7 +117,7 @@ public class ServerUtils {
         part = 0L;
         System.out.printf("Количество частей у файла размером %1$d байт равно %2$d", size, parts);
         ByteBuffer byteBuffer = ByteBuffer.allocate(MAX_BYTE_ARRAY_SIZE);
-        FileMessage fileMessage = new FileMessage();
+        FileMessage fileMessage = new FileMessage(msg.authKey);
 
         try (FileChannel fileChannel = new RandomAccessFile(localPath.toFile(), "r").getChannel()) {
             int read;
@@ -159,11 +132,11 @@ public class ServerUtils {
                 fileMessage.setPart(part++);
                 fileMessage.setBytes(bytes);
                 fileMessage.setRemotePath((String) msg.getParametersMap().get(LOCAL_PATH) + msg.getParametersMap().get(REMOTE_PATH));
-                ctx.writeAndFlush(fileMessage);
+                ctx.writeAndFlush(fileMessage).sync();
                 byteBuffer.clear();
             }
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -202,18 +175,5 @@ public class ServerUtils {
         }
         return filesList;
     }
-
-//    private static List<Path> getPathList(Path localPath) {
-//
-//        List<Path> filesList = null;
-//
-//        try {
-//            filesList = Files.walk(localPath, 1, FileVisitOption.FOLLOW_LINKS)
-//                    .filter(p -> !p.equals(localPath)).collect(Collectors.toList());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return filesList;
-//    }
 
 }
