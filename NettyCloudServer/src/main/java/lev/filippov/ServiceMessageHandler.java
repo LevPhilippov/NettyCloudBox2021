@@ -20,6 +20,12 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
                 case GET_STRUCTURE:
                     ServerUtils.sendFilesListManager(ctx, sm);
                     break;
+                case CREATE_FOLDER:
+                    ServerUtils.createFolder(ctx, sm);
+                    break;
+                case REMOVE:
+                    ServerUtils.remove(ctx, sm);
+                    break;
                 default:
                     System.out.println("Unknown command " + sm.getMessageType());
                     break;

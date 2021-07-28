@@ -2,13 +2,10 @@ package lev.filippov;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -20,22 +17,6 @@ import static lev.filippov.Constants.*;
 
 public class ClientUtils {
         private static final Logger logger = LogManager.getLogger(ClientUtils.class.getName());
-
-//    public static void writeSmallFile(FileMessage fileMessage) {
-//        try {
-//            checkFileMessageDatNonNull(fileMessage);
-//            Path localPath = Paths.get(CLIENT_RELATIVE_PATH, fileMessage.getRemotePath());
-//            System.out.println(localPath);
-//            Path directory = localPath.getParent();
-////            Path directory = localPath.getParent();
-//            if(!Files.exists(directory))
-//                Files.createDirectories(directory);
-////            Files.createFile(localPath);
-//            Files.write(localPath, fileMessage.getBytes(), StandardOpenOption.CREATE);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
 
     private static void checkFileMessageDatNonNull(FileMessage fm) throws IOException {
@@ -50,7 +31,7 @@ public class ClientUtils {
     static void writeToChannelManager(Channel channel, String localPath, String remotePath, AuthKey authKey){
         Path systemLocalPath = getLocalPath(localPath);
         if (!Files.exists(systemLocalPath)) {
-            System.out.printf("File or folder %1$s you are querying isn't exist or path is wrong!\\n", localPath);
+            System.out.printf("File or folder %1$s you are querying isn't exist or path is wrong!\n", localPath);
             return;
         }
         if (Files.isDirectory(systemLocalPath)) {
@@ -58,9 +39,15 @@ public class ClientUtils {
                 Files.walkFileTree(systemLocalPath, new SimpleFileVisitor<Path>(){
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        String finalRemotePath  = remotePath + systemLocalPath.getParent().relativize(file);
+                        String finalRemotePath  = remotePath + systemLocalPath.getParent().relativize(file).toString();
                         System.out.println(systemLocalPath);
                         writeFileToChannel(channel,file, finalRemotePath, authKey);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                        createRemoteDirectory(channel, systemLocalPath.getParent().relativize(dir).toString(), remotePath, authKey);
                         return FileVisitResult.CONTINUE;
                     }
                 });
@@ -69,6 +56,23 @@ public class ClientUtils {
             }
         } else {
             writeFileToChannel(channel, systemLocalPath, remotePath + systemLocalPath.getFileName(), authKey);
+        }
+    }
+
+    static void createRemoteDirectory(Channel channel, String localRelativePath, String remotePath, AuthKey authKey) {
+        ServiceMessage serviceMessage = new ServiceMessage(authKey);
+        serviceMessage.setMessageType(MessageType.CREATE_FOLDER);
+        StringBuilder remotePathBuilder = new StringBuilder(remotePath);
+        if (!remotePath.endsWith("/") && !remotePath.endsWith("\\")) {
+            remotePathBuilder.append("\\");
+        }
+        remotePathBuilder.append(localRelativePath).append("\\");
+        serviceMessage.getParametersMap().put(REMOTE_PATH, remotePathBuilder.toString());
+        logger.info("Путь создания папки на сервере: " + serviceMessage.getParametersMap().get(REMOTE_PATH));
+        try {
+            channel.writeAndFlush(serviceMessage).sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -137,6 +141,32 @@ public class ClientUtils {
 
     protected static Path getLocalPath(String remotePath) {
         return Paths.get(CLIENT_RELATIVE_PATH, remotePath);
+    }
+
+    public static void createDirectory(ServiceMessage msg) {
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        if(Files.exists(localPath)){
+            System.out.printf("Folder %1$s already exist!\n", localPath.toString());
+        } else {
+            try {
+                logger.info("Попытка создать папку по адресу " + localPath);
+                Files.createDirectory(localPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    public static void removeRemote(Channel channel, String remotePath, AuthKey authkey) {
+        ServiceMessage sm = new ServiceMessage(authkey);
+        sm.setMessageType(MessageType.REMOVE);
+        sm.getParametersMap().put(REMOTE_PATH, remotePath);
+        try {
+            channel.writeAndFlush(sm).sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }

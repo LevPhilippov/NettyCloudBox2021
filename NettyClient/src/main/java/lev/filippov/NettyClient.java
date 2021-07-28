@@ -61,8 +61,7 @@ public class NettyClient {
             channel = f.channel();
 
             logger.info("Client is ready for use!");
-            System.out.println("Command line is runned! For authorization in system please type: auth login [login] pass [password] where words " +
-                    "with brackest are your login and password in the system!");
+            showHelp();
 
             f.channel().closeFuture().sync();
 
@@ -74,16 +73,36 @@ public class NettyClient {
 
     }
 
+    private void showHelp() {
+        System.out.println("Command line is runned! " +
+                "For authorization in system please type: auth login [login] pass [password] where words " +
+                "with brackets are your login and password in the system!\nTo ask files list type: gs [folder/]\nTo send" +
+                "file type: send localfolder(or file) to folder\nTo get file or folder type: get folder(or file) to folder\n" +
+                "To delete file or folder on the serverside type: remove remotepathfolder/\n" +
+                "To create folder on the severside type: create foldername in remotefolderpath/");
+        System.out.println("");
+    }
+
     private void startCommandLine() {
         try(InputStreamReader isr = new InputStreamReader(System.in, StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(isr))
         {
             while (true) {
                 if(Thread.currentThread().isInterrupted()){
+                    logger.info("Closing application. Commandline is off.");
                     break;
                 }
                 //bloking oparetion
                 String line = reader.readLine();
+                //shutdown operation
+                if (line.startsWith("shutdown")) {
+                    Thread.currentThread().interrupt();
+                    continue;
+                }
+                if (line.startsWith("help")){
+                    showHelp();
+                    continue;
+                }
                 //when not authorized in a system
                 if(authKey == null) {
                     //encounter only auth query
@@ -111,7 +130,7 @@ public class NettyClient {
                             logger.info("Отправлены данные авторизации.");
                         }
                     }
-                } /*when you already authorized in a system*/
+                } /*when you already authorized in a system and authKey is present*/
                 else {
                     String[] tokens = line.split("\\s");
 
@@ -128,27 +147,33 @@ public class NettyClient {
                         //query must be like {get folder(or file) to folder\}
                         ServiceMessage sm = new ServiceMessage(authKey);
                         sm.setMessageType(MessageType.GET_FILE);
-                            if (tokens[3] != null) {
+                            if (tokens.length > 3) {
                                 sm.getParametersMap().put(LOCAL_PATH, tokens[3]);
                             } else {
                                 sm.getParametersMap().put(LOCAL_PATH, "");
                             }
                         sm.getParametersMap().put(REMOTE_PATH, tokens[1]);
                         channel.writeAndFlush(sm);
-                    }  else if (line.startsWith("send") && tokens[2].equals("to"))   {
+                    }  else if (tokens[0].equals("send") && tokens[2].equals("to"))   {
                         //query must be like {send localfolder(or file) to folder\}
-                        ClientUtils.writeToChannelManager(channel,tokens[1], tokens[3], authKey);
+                        if (tokens.length > 3) {
+                            ClientUtils.writeToChannelManager(channel,tokens[1], tokens[3], authKey);
+                        } else {
+                            ClientUtils.writeToChannelManager(channel,tokens[1], new String(""), authKey);
+                        }
+                    } else if (tokens[0].equals("create") && tokens[2].equals("in") || tokens[2].equals("to") ){
+                        //query must be like {create folder/ in remotepathfolder/ }
+                        ClientUtils.createRemoteDirectory(channel, tokens[1], tokens[3], authKey);
+                    } else if (tokens[0].equals("remove")){
+                        //query must be like {remove remotepathfolder/ }
+                        ClientUtils.removeRemote(channel, tokens[1], authKey);
                     }
-                }
-                //encounter shutdown
-                if (line.startsWith("shutdown")) {
-                    Thread.currentThread().interrupt();
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        workerGroup.shutdownGracefully();
+        channel.close();
     }
 
 

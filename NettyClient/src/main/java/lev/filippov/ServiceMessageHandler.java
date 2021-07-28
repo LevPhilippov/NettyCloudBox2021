@@ -46,6 +46,9 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
                 case MESSAGE:
                     System.out.println(sm.getParametersMap().get(MESSAGE));
                     break;
+                case CREATE_FOLDER:
+                    ClientUtils.createDirectory((ServiceMessage) msg);
+                    break;
                 default:
                     System.out.println("Unknown message format!");
                     break;

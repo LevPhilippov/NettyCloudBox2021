@@ -1,5 +1,6 @@
 package lev.filippov;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.io.IOException;
@@ -10,10 +11,14 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.*;
 
 import static lev.filippov.Constants.*;
 
 public class ServerUtils {
+
+    private static Logger logger = LogManager.getLogger(ServerUtils.class.getName());
+
 
 //    public static void writeSmallFile(FileMessage fileMessage) {
 //        try {
@@ -79,9 +84,27 @@ public class ServerUtils {
                 Files.walkFileTree(localPath,new SimpleFileVisitor<Path>(){
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        msg.getParametersMap().put(REMOTE_PATH, localPath.getParent().relativize(file).toString());
+                        msg.getParametersMap().put(REMOTE_PATH, file.subpath(1,file.getNameCount()).toString());
                         System.out.println("Relative path for " + file + " is " + msg.getParametersMap().get(REMOTE_PATH));
                         writeFileToChannel(ctx, msg);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                        msg.setMessageType(MessageType.CREATE_FOLDER);
+                        StringBuilder remotePathBuilder = new StringBuilder((String) msg.getParametersMap().get(LOCAL_PATH));
+                        if (!localPath.endsWith("/") && !localPath.endsWith("\\")){
+                            remotePathBuilder.append("\\");
+                        }
+                        remotePathBuilder.append(localPath.getParent().relativize(dir).toString()).append("\\");
+                        msg.getParametersMap().put(REMOTE_PATH, remotePathBuilder.toString());
+                        logger.info("Составленный путь запрошенного каталога клиента: " + remotePathBuilder.toString());
+                        try {
+                            ctx.writeAndFlush(msg).sync();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         return FileVisitResult.CONTINUE;
                     }
                 });
@@ -92,6 +115,7 @@ public class ServerUtils {
         }
     }
 
+
 //    private static void createFolderCommand(ChannelHandlerContext ctx, ServiceMessage msg) {
 //        msg.setMessageType(MessageType.CREATE_FOLDER);
 //    }
@@ -100,7 +124,7 @@ public class ServerUtils {
         Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
 
         if (!Files.exists(localPath)) {
-            System.out.println("Файл отсутствует или адрес указан не верно!");
+            System.out.printf("Файл %1$s отсутствует или адрес указан не верно!\n", localPath.toString());
             return;
         }
 
@@ -115,7 +139,7 @@ public class ServerUtils {
         //quantity of parts
         parts = (size % MAX_BYTE_ARRAY_SIZE > 0) ? size / MAX_BYTE_ARRAY_SIZE : size / MAX_BYTE_ARRAY_SIZE + 1;
         part = 0L;
-        System.out.printf("Количество частей у файла размером %1$d байт равно %2$d", size, parts);
+        logger.info("Количество частей у файла размером {} байт равно {}", size, parts);
         ByteBuffer byteBuffer = ByteBuffer.allocate(MAX_BYTE_ARRAY_SIZE);
         FileMessage fileMessage = new FileMessage(msg.authKey);
 
@@ -174,6 +198,65 @@ public class ServerUtils {
             e.printStackTrace();
         }
         return filesList;
+    }
+
+    public static void createFolder(ChannelHandlerContext ctx, ServiceMessage msg) {
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        if(Files.exists(localPath)){
+            msg.setMessageType(MessageType.MESSAGE);
+            msg.getParametersMap().put(MESSAGE, new String("Folder " + msg.getParametersMap().get(REMOTE_PATH) + " already exist!"));
+            try {
+                ctx.writeAndFlush(msg).sync();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                logger.info("Попытка создать папку по адресу " + localPath);
+                Files.createDirectory(localPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void remove(ChannelHandlerContext ctx, ServiceMessage msg) {
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        if (!Files.exists(localPath)) {
+            msg.setMessageType(MessageType.MESSAGE);
+            msg.getParametersMap().put(MESSAGE, new String("Folder or file " + msg.getParametersMap().get(REMOTE_PATH) + " not exist!"));
+            try {
+                ctx.writeAndFlush(msg).sync();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        } else {
+            try {
+                Files.walkFileTree(localPath, new SimpleFileVisitor<Path>(){
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        Files.delete(file);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                        Files.delete(dir);
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        msg.setMessageType(MessageType.MESSAGE);
+        msg.getParametersMap().put(MESSAGE, "Files deleted!");
+        try {
+            ctx.writeAndFlush(msg).sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }

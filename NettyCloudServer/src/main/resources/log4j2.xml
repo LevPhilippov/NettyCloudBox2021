@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+<!--    <Properties>-->
+<!--        <Property name="basePath" value="JavaDeep6Testing/logs"/>-->
+<!--    </Properties>-->
+
+
+    <Appenders>
+
+        <Console name="STDOUT" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+        </Console>
+
+<!--        <File name="FileAppender" fileName="${basePath}/logfile.log">-->
+<!--            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>-->
+<!--        </File>-->
+
+    </Appenders>
+
+    <Loggers>
+        <Root level="ERROR">
+            <AppenderRef ref="STDOUT"/>
+        </Root>
+
+        <Logger name="lev.filippov.ServerUtils" level="info" additivity="false">
+            <AppenderRef ref="STDOUT"/>
+        </Logger>
+    </Loggers>
+
+</Configuration>
