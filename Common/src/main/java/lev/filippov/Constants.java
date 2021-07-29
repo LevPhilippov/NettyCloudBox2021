@@ -13,7 +13,7 @@ public class Constants {
     //ParamsMap key for text message
     public static final String MESSAGE = "message";
     //ParamsMap key for GET_STRUCTURE command
-    public static final String FILES_LIST = "pathList";
+    public static final String FILES_LIST = "filesList";
     //ParamsMap key for local path
     public static final String LOCAL_PATH = "localPath";
     //ParamsMap key for remote path

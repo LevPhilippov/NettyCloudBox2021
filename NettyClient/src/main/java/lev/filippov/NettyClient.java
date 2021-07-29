@@ -13,7 +13,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -24,15 +23,16 @@ import static lev.filippov.Constants.REMOTE_PATH;
 
 public class NettyClient {
 
+    private final Logger logger;
     private final String url;
     private final int port;
     private EventLoopGroup workerGroup;
     private AuthKey authKey;
-    private Logger logger = LogManager.getLogger(this.getClass().getName());
     private Channel channel;
     public static String currentRemoteFolderPath = "root";
 
     public NettyClient(String url, int port) {
+        this.logger = LogManager.getLogger(this.getClass().getName());
         this.url = url;
         this.port = port;
     }
@@ -59,10 +59,8 @@ public class NettyClient {
 
             ChannelFuture f = b.connect(url, port).sync();
             channel = f.channel();
-
             logger.info("Client is ready for use!");
             showHelp();
-
             f.channel().closeFuture().sync();
 
         } catch (InterruptedException e) {
@@ -74,13 +72,24 @@ public class NettyClient {
     }
 
     private void showHelp() {
-        System.out.println("Command line is runned! " +
-                "For authorization in system please type: auth login [login] pass [password] where words " +
-                "with brackets are your login and password in the system!\nTo ask files list type: gs [folder/]\nTo send" +
-                "file type: send localfolder(or file) to folder\nTo get file or folder type: get folder(or file) to folder\n" +
-                "To delete file or folder on the serverside type: remove remotepathfolder/\n" +
-                "To create folder on the severside type: create foldername in remotefolderpath/");
-        System.out.println("");
+        System.out.println("Command line is runned!\n" +
+                "To use commands type and enter any command below, replacing value in square brackets with pathes of files and folder you need.\n" +
+                "Text into round brackets is OPTIONAL!\n" +
+                "For authorization in system type: auth login [login] pass [password] where words with brackets are your login and password in the system!\n" +
+                "To ask files list type: fl( [folder/])\n" +
+                "To send file type: send [localfolder(or file)]( to [folder])\n" +
+                "To get file or folder type: get [folder\\(or file)]( to [folder\\])\n" +
+                "To create folder on the severside type: create [foldername\\]( in [remotefolderpath\\])"+
+                "To delete file or folder on the serverside type: remove [remotepathfolder\\]\n" +
+                "To see this notice again type [help]");
+    }
+
+    public AuthKey getAuthKey() {
+        return authKey;
+    }
+
+    public void setAuthKey(AuthKey authKey) {
+        this.authKey = authKey;
     }
 
     private void startCommandLine() {
@@ -88,6 +97,7 @@ public class NettyClient {
             BufferedReader reader = new BufferedReader(isr))
         {
             while (true) {
+
                 if(Thread.currentThread().isInterrupted()){
                     logger.info("Closing application. Commandline is off.");
                     break;
@@ -133,55 +143,69 @@ public class NettyClient {
                 } /*when you already authorized in a system and authKey is present*/
                 else {
                     String[] tokens = line.split("\\s");
-
-                    if (tokens[0].equals("gs")) {
+                    //get files list
+                    if (line.matches("^fl(\\s\\S+)?")) {
                         ServiceMessage sm = new ServiceMessage(authKey);
-                        sm.setMessageType(MessageType.GET_STRUCTURE);
+                        sm.setMessageType(MessageType.FILES_LIST);
                         if (tokens.length == 2) {
-                            sm.getParametersMap().put(REMOTE_PATH,tokens[1]);
+                            sm.getParametersMap().put(REMOTE_PATH,tokens[1].endsWith("\\") ? "" : tokens[1]+"\\");
                         } else {
-                            sm.getParametersMap().put(REMOTE_PATH, "root");
+                            sm.getParametersMap().put(REMOTE_PATH, null);
                         }
                         channel.writeAndFlush(sm);
-                    } else if(tokens[0].equals("get") && tokens[2].equals("to")) {
-                        //query must be like {get folder(or file) to folder\}
+                    }
+                    // get files or folders
+                    else if(line.matches("^get\\s\\S+(\\sto\\s\\S+)?")) {
+                        //query must be like {get folder\\(or file) to folder\}
                         ServiceMessage sm = new ServiceMessage(authKey);
                         sm.setMessageType(MessageType.GET_FILE);
-                            if (tokens.length > 3) {
+                            if (tokens.length == 4) {
                                 sm.getParametersMap().put(LOCAL_PATH, tokens[3]);
+                            } else if (tokens.length==2) {
+                                sm.getParametersMap().put(LOCAL_PATH, new String(""));
                             } else {
-                                sm.getParametersMap().put(LOCAL_PATH, "");
+                                System.out.println("Unknown command.\nPlease, check your query must be like {get [folder\\or file]( to folder\\)}");
                             }
                         sm.getParametersMap().put(REMOTE_PATH, tokens[1]);
                         channel.writeAndFlush(sm);
-                    }  else if (tokens[0].equals("send") && tokens[2].equals("to"))   {
-                        //query must be like {send localfolder(or file) to folder\}
-                        if (tokens.length > 3) {
+                    }
+                    //send files or folders to server
+                    else if (line.matches("^copy\\s\\S+(\\sto\\s\\S+)?")) {
+                        //query must be like {copy localfolder\\(or file) to folder\}
+                        if (tokens.length == 4) {
                             ClientUtils.writeToChannelManager(channel,tokens[1], tokens[3], authKey);
-                        } else {
+                        } else if (tokens.length ==2 ) {
                             ClientUtils.writeToChannelManager(channel,tokens[1], new String(""), authKey);
+                        } else {
+                            System.out.println("Unknown command.\nPlease, check your query must be like {copy [localfolder\\or file]( to folder\\)}");
                         }
-                    } else if (tokens[0].equals("create") && tokens[2].equals("in") || tokens[2].equals("to") ){
-                        //query must be like {create folder/ in remotepathfolder/ }
-                        ClientUtils.createRemoteDirectory(channel, tokens[1], tokens[3], authKey);
-                    } else if (tokens[0].equals("remove")){
+                    }
+                    //create directory on the server side
+                    else if (line.matches("^create\\s\\S+(\\sin\\s\\S+)?")){
+                        //query must be like {create folder/ in(or to) remotepathfolder/ }
+                        if (tokens.length == 4) {
+                            ClientUtils.createRemoteDirectory(channel, tokens[1], tokens[3], authKey);
+                        } else if (tokens.length == 2){
+                            ClientUtils.createRemoteDirectory(channel, tokens[1], "", authKey);
+                        } else {
+                            System.out.println("Unknown command.\nPlease, check your query must be like {create [folder/]( in(or to) remotepathfolder/)}");
+                        }
+                    }
+                    //remove directory on the server side
+                    else if (line.matches("^remove\\s\\S+")){
                         //query must be like {remove remotepathfolder/ }
+                        logger.info("Remove query for {}", tokens[1]);
                         ClientUtils.removeRemote(channel, tokens[1], authKey);
+                    } else {
+                        System.out.println("Unknown command.\nPlease, type help for commands list.");
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         channel.close();
     }
 
 
-    public AuthKey getAuthKey() {
-        return authKey;
-    }
-
-    public void setAuthKey(AuthKey authKey) {
-        this.authKey = authKey;
-    }
 }

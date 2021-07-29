@@ -12,6 +12,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
+import java.util.Objects;
 
 import static lev.filippov.Constants.*;
 
@@ -60,17 +62,19 @@ public class ClientUtils {
     }
 
     static void createRemoteDirectory(Channel channel, String localRelativePath, String remotePath, AuthKey authKey) {
-        ServiceMessage serviceMessage = new ServiceMessage(authKey);
-        serviceMessage.setMessageType(MessageType.CREATE_FOLDER);
+        ServiceMessage sm = new ServiceMessage(authKey);
+        sm.setMessageType(MessageType.CREATE_FOLDER);
         StringBuilder remotePathBuilder = new StringBuilder(remotePath);
         if (!remotePath.endsWith("/") && !remotePath.endsWith("\\")) {
             remotePathBuilder.append("\\");
         }
-        remotePathBuilder.append(localRelativePath).append("\\");
-        serviceMessage.getParametersMap().put(REMOTE_PATH, remotePathBuilder.toString());
-        logger.info("Путь создания папки на сервере: " + serviceMessage.getParametersMap().get(REMOTE_PATH));
+        if (!localRelativePath.endsWith("/") && !localRelativePath.endsWith("\\")) {
+            remotePathBuilder.append(localRelativePath).append("\\");
+        }
+        sm.getParametersMap().put(REMOTE_PATH, remotePathBuilder.toString());
+        logger.info("Путь создания папки на сервере: " + sm.getParametersMap().get(REMOTE_PATH));
         try {
-            channel.writeAndFlush(serviceMessage).sync();
+            channel.writeAndFlush(sm).sync();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -89,7 +93,7 @@ public class ClientUtils {
         //quantity of parts
         parts = (size % MAX_BYTE_ARRAY_SIZE > 0) ? size/ MAX_BYTE_ARRAY_SIZE : size/ MAX_BYTE_ARRAY_SIZE + 1 ;
         part=0L;
-        System.out.printf("Количество частей у файла %1$s размером %2$d байтравно %3$d.\n", localPath.toString(), size, parts );
+        System.out.printf("Количество частей у файла %1$s размером %2$d байт равно %3$d.\n", localPath.toString(), size, parts );
         ByteBuffer byteBuffer = ByteBuffer.allocate(MAX_BYTE_ARRAY_SIZE);
         FileMessage fileMessage = new FileMessage(authKey);
 
@@ -168,5 +172,17 @@ public class ClientUtils {
             e.printStackTrace();
         }
     }
+
+    static void printFilesList(ServiceMessage sm) {
+        String currentRemoteFolder = (String) sm.getParametersMap().get(REMOTE_PATH);
+        NettyClient.currentRemoteFolderPath = Objects.isNull(currentRemoteFolder) ? "root": currentRemoteFolder;
+        List<String> filesList = (List<String>) sm.getParametersMap().get(FILES_LIST);
+        System.out.println("Current folder is: " + NettyClient.currentRemoteFolderPath);
+        if (Objects.isNull(filesList))
+            System.out.println("Congratulations! Your storage is empty! You have a bunch of space!");
+        else
+            filesList.forEach(System.out::println);
+    }
+
 
 }

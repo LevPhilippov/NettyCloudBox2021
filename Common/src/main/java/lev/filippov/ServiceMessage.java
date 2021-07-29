@@ -9,7 +9,6 @@ public class ServiceMessage extends Message {
     private MessageType messageType;
 
     public ServiceMessage(AuthKey authKey) {
-        type = Message.SERVICE;
         this.authKey = authKey;
         parametersMap = new HashMap<>();
     }

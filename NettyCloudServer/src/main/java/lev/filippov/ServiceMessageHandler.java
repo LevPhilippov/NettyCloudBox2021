@@ -3,8 +3,6 @@ package lev.filippov;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-import java.util.Map;
-
 
 public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
 
@@ -12,12 +10,11 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ServiceMessage) {
             ServiceMessage sm = (ServiceMessage) msg;
-            Map<String, Object> params = (sm.getParametersMap());
             switch (sm.getMessageType()) {
                 case GET_FILE:
                     ServerUtils.writeToChannelManager(ctx,sm);
                     break;
-                case GET_STRUCTURE:
+                case FILES_LIST:
                     ServerUtils.sendFilesListManager(ctx, sm);
                     break;
                 case CREATE_FOLDER:
@@ -27,7 +24,7 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
                     ServerUtils.remove(ctx, sm);
                     break;
                 default:
-                    System.out.println("Unknown command " + sm.getMessageType());
+                    System.out.println("Unknown command: " + sm.getMessageType());
                     break;
             }
         } else

@@ -7,7 +7,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.List;
 
 import static lev.filippov.Constants.*;
 
@@ -35,13 +34,8 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
         if (msg instanceof ServiceMessage) {
             ServiceMessage sm = (ServiceMessage) msg;
             switch (sm.getMessageType()){
-                case GET_STRUCTURE:
-                    NettyClient.currentRemoteFolderPath = (String) sm.getParametersMap().get(REMOTE_PATH);
-                    List<String> filesList = (List<String>) sm.getParametersMap().get(FILES_LIST);
-                    System.out.print("Current folder is: " + NettyClient.currentRemoteFolderPath + "\n");
-                    for (String s : filesList) {
-                        System.out.println(s);
-                    }
+                case FILES_LIST:
+                    ClientUtils.printFilesList(sm);
                     break;
                 case MESSAGE:
                     System.out.println(sm.getParametersMap().get(MESSAGE));
@@ -57,6 +51,7 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
             ctx.fireChannelRead(msg);
         }
     }
+
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
