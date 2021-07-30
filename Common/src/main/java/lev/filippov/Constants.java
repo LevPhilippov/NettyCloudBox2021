@@ -2,10 +2,6 @@ package lev.filippov;
 
 
 public class Constants {
-    //server relative path
-    public static final String SERVER_RELATIVE_PATH = "server\\";
-    //temp user relative path
-    public static final String CLIENT_RELATIVE_PATH = "client\\";
     //max bya array for one messagefile size in bytes
     public static final int MAX_BYTE_ARRAY_SIZE = 1024*100;
     //max messagefile size

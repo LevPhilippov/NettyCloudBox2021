@@ -55,7 +55,8 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
+        logger.error(cause.getMessage());
+        ctx.channel().close();
     }
 
     private void autoLogIn(ChannelHandlerContext ctx) throws IOException {

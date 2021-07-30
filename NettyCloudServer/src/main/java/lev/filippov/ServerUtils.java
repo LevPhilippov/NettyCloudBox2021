@@ -1,41 +1,32 @@
 package lev.filippov;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.*;
-
 import static lev.filippov.Constants.*;
 
 public class ServerUtils {
 
     private static Logger logger = LogManager.getLogger(ServerUtils.class.getName());
 
+    static {
+        logger.info("Server folder is: {}", Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH()).toAbsolutePath());
+        try {
+            Files.createDirectories(Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH()));
+        } catch (IOException e) {
+            logger.error(e.getMessage());
 
-//    public static void writeSmallFile(FileMessage fileMessage) {
-//        try {
-//            checkFileMessageDatNonNull(fileMessage);
-//            Path localPath = Paths.get(SERVER_RELATIVE_PATH, fileMessage.getRemotePath());
-//            System.out.println(localPath);
-//            Path directory = localPath.getParent();
-////            Path directory = localPath.getParent();
-//            if(!Files.exists(directory));
-//                Files.createDirectories(directory);
-////            Files.createFile(localPath);
-//            Files.write(localPath, fileMessage.getBytes(), StandardOpenOption.CREATE);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+        }
+    }
 
     private static void checkFileMessageDatNonNull(FileMessage fm) throws IOException {
         if (fm.getBytes() == null) {
@@ -50,7 +41,7 @@ public class ServerUtils {
         try {
             checkFileMessageDatNonNull(msg);
             //TODO: Нужно бороться с конкатенацией, если не указана слэш
-            Path localPath = getLocalPath(msg.getRemotePath());
+            Path localPath = getLocalPath(msg.getRemotePath(), msg.getAuthKey());
 
             if (msg.getPart().equals(0L)) {
                 if(!Files.exists(localPath.getParent()))
@@ -67,13 +58,13 @@ public class ServerUtils {
         }
     }
 
-    private static Path getLocalPath(String localPath) {
-            return Objects.isNull(localPath) ? Paths.get(SERVER_RELATIVE_PATH) : Paths.get(SERVER_RELATIVE_PATH, localPath);
+    private static Path getLocalPath(String localPath, AuthKey authKey) {
+            String userFolder = PersistanceBean.getUserFolderPath(authKey.getLogin());
+            return Objects.isNull(localPath) ? Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH(),userFolder) : Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH(), userFolder,localPath);
     }
 
-
     static void writeToChannelManager(ChannelHandlerContext ctx, ServiceMessage msg) {
-        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
         //если запрашивается файл
         if (!Files.isDirectory(localPath)) {
             writeFileToChannel(ctx, msg, false);
@@ -81,16 +72,19 @@ public class ServerUtils {
         //если запрашивается каталог
         else {
             try {
-                System.out.println("Исходный путь: " + localPath);
+                logger.info("Исходный путь: " + localPath);
                 Files.walkFileTree(localPath,new SimpleFileVisitor<Path>(){
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        msg.getParametersMap().put(REMOTE_PATH, file.subpath(1,file.getNameCount()).toString());
+//                      msg.getParametersMap().put(REMOTE_PATH, file.subpath(1,file.getNameCount()).toString());
+                        msg.getParametersMap().put(REMOTE_PATH, localPath.getParent().relativize(file).toString());
+                        /*TODO: вместо сабпас сделать релатив относительно SERVER_RELATIVE_PATH + имени каталога пользователя.
+                        SERVER_R_P подавать либо как входной параметр при запуске приложения,
+                        либо он должен определяться самостоятельно (изучить такую возможнсть)*/
                         System.out.println("Relative path for " + file + " is " + msg.getParametersMap().get(REMOTE_PATH));
                         writeFileToChannel(ctx, msg, true);
                         return FileVisitResult.CONTINUE;
                     }
-
                     @Override
                     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                         msg.setMessageType(MessageType.CREATE_FOLDER);
@@ -117,12 +111,8 @@ public class ServerUtils {
     }
 
 
-//    private static void createFolderCommand(ChannelHandlerContext ctx, ServiceMessage msg) {
-//        msg.setMessageType(MessageType.CREATE_FOLDER);
-//    }
-
     private static void writeFileToChannel(ChannelHandlerContext ctx, ServiceMessage msg, boolean copyWithFolder) {
-        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
 
         if (!Files.exists(localPath)) {
             System.out.printf("Файл %1$s отсутствует или адрес указан не верно!\n", localPath.toString());
@@ -182,7 +172,7 @@ public class ServerUtils {
     }
 
     public static void sendFilesListManager(ChannelHandlerContext ctx, ServiceMessage sm) {
-        Path path = getLocalPath((String) sm.getParametersMap().get(REMOTE_PATH));
+        Path path = getLocalPath((String) sm.getParametersMap().get(REMOTE_PATH),sm.getAuthKey());
 
         if (!Files.exists(path)) {
             sendServiceMessage(ctx, sm, String.format("No %1$s folder!", (String) sm.getParametersMap().get(REMOTE_PATH)));
@@ -208,7 +198,7 @@ public class ServerUtils {
     }
 
     public static void createFolder(ChannelHandlerContext ctx, ServiceMessage msg) {
-        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
         if(Files.exists(localPath)){
             msg.setMessageType(MessageType.MESSAGE);
             msg.getParametersMap().put(MESSAGE, new String("Folder " + msg.getParametersMap().get(REMOTE_PATH) + " already exist!"));
@@ -228,7 +218,7 @@ public class ServerUtils {
     }
 
     public static void remove(ChannelHandlerContext ctx, ServiceMessage msg) {
-        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));
+        Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
         if (!Files.exists(localPath)) {
             sendServiceMessage(ctx, msg, String.format("Folder or file %1$s not exist!", (String) msg.getParametersMap().get(REMOTE_PATH)));
         } else {
@@ -253,4 +243,22 @@ public class ServerUtils {
         sendServiceMessage(ctx, msg, "Files deleted!");
     }
 
+    public static void createUserFolder(String login) {
+        String userFolder = PersistanceBean.getUserFolderPath(login);
+        if (Objects.isNull(userFolder)){
+            try {
+                throw new SQLException(String.format("Userfolder field fo user %1$s is empty!", login));
+            } catch (SQLException e) {
+                logger.error(e.getMessage());
+            }
+        }
+        Path userFolderPath = Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH(),userFolder);
+        if (!Files.exists(userFolderPath)) {
+            try {
+                Files.createDirectory(userFolderPath);
+            } catch (IOException e) {
+                logger.error(e.getMessage());
+            }
+        }
+    }
 }

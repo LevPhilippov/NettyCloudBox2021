@@ -11,13 +11,12 @@ import io.netty.handler.codec.serialization.ObjectEncoder;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
-
+import java.util.Objects;
 import static lev.filippov.Constants.LOCAL_PATH;
 import static lev.filippov.Constants.REMOTE_PATH;
 
@@ -30,18 +29,37 @@ public class NettyClient {
     private AuthKey authKey;
     private Channel channel;
     public static String currentRemoteFolderPath = "root";
+    private static NettyClient nettyClient;
+    private final String CLIENT_FOLDER;
 
-    public NettyClient(String url, int port) {
+    private NettyClient(String url, int port, String clientFolder) {
         this.logger = LogManager.getLogger(this.getClass().getName());
         this.url = url;
         this.port = port;
+        this.CLIENT_FOLDER=clientFolder;
+        NettyClient.nettyClient = this;
     }
 
     public static void main(String[] args) {
-        new NettyClient("localhost", 8189).start();
+        new NettyClient(args[0],Integer.parseInt(args[1]),args[2]).start();
+    }
+
+    public static NettyClient getInstance(){
+        if(Objects.isNull(nettyClient))
+            throw new RuntimeException("NettyClient isn't runned!");
+        return nettyClient;
+    }
+
+    public String getCLIENT_FOLDER() {
+        return CLIENT_FOLDER;
     }
 
     private void start() {
+        try {
+            Class.forName("lev.filippov.ClientUtils");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
         try {
             workerGroup = new NioEventLoopGroup();
             workerGroup.execute(this::startCommandLine);
@@ -75,7 +93,7 @@ public class NettyClient {
         System.out.println("Command line is runned!\n" +
                 "To use commands type and enter any command below, replacing value in square brackets with pathes of files and folder you need.\n" +
                 "Text into round brackets is OPTIONAL!\n" +
-                "For authorization in system type: auth login [login] pass [password] where words with brackets are your login and password in the system!\n" +
+                "For authorization in system type: auth l- [login] p- [password] where words with brackets are your login and password in the system!\n" +
                 "To ask files list type: fl( [folder/])\n" +
                 "To send file type: send [localfolder(or file)]( to [folder])\n" +
                 "To get file or folder type: get [folder\\(or file)]( to [folder\\])\n" +
@@ -96,12 +114,8 @@ public class NettyClient {
         try(InputStreamReader isr = new InputStreamReader(System.in, StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(isr))
         {
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
 
-                if(Thread.currentThread().isInterrupted()){
-                    logger.info("Closing application. Commandline is off.");
-                    break;
-                }
                 //bloking oparetion
                 String line = reader.readLine();
                 //shutdown operation
@@ -113,36 +127,39 @@ public class NettyClient {
                     showHelp();
                     continue;
                 }
+                String[] tokens = line.split("\\s");
                 //when not authorized in a system
                 if(authKey == null) {
                     //encounter only auth query
-                    if(line.startsWith("auth")) {
+                    if(line.matches("^auth\\sl-\\s\\S+\\sp-\\s\\S+")) {
                         logger.info("Получена команда на авторизацию.");
                         AuthKey tempAuthKey = new AuthKey();
-                        String[] strings = line.split("\\s");
-                        Iterator<String> iter = Arrays.stream(strings).iterator();
-                        String prev=null;
+                        Iterator<String> iter = Arrays.stream(tokens).iterator();
+//                        String prev=null;
                         String cur=null;
                         while (iter.hasNext()) {
                             cur = iter.next();
-                            if (prev != null) {
-                                if (prev.equals("login") && tempAuthKey.getLogin() == null){
-                                    tempAuthKey.setLogin(cur);
-                                }
-                                if (prev.equals("pass") && tempAuthKey.getPassword() == null){
-                                    tempAuthKey.setPassword(DigestUtils.md5Hex(cur));
-                                }
-                            }
-                            prev=cur;
+                            if(cur.matches("l-"))
+                                tempAuthKey.setLogin(iter.next());
+                            if(cur.matches("p-"))
+                                tempAuthKey.setPassword(DigestUtils.md5Hex(iter.next()));
+//                            if (prev != null) {
+//                                if (prev.equals("login") && tempAuthKey.getLogin() == null){
+//                                    tempAuthKey.setLogin(cur);
+//                                }
+//                                if (prev.equals("pass") && tempAuthKey.getPassword() == null){
+//                                    tempAuthKey.setPassword(DigestUtils.md5Hex(cur));
+//                                }
+//                            }
+//                            prev=cur;
                         }
-                        if (tempAuthKey.getLogin() != null && tempAuthKey.getPassword()!= null) {
+                        if (!Objects.isNull(tempAuthKey.getLogin()) && !Objects.isNull(tempAuthKey.getPassword())) {
                             channel.writeAndFlush(tempAuthKey);
                             logger.info("Отправлены данные авторизации.");
                         }
                     }
                 } /*when you already authorized in a system and authKey is present*/
                 else {
-                    String[] tokens = line.split("\\s");
                     //get files list
                     if (line.matches("^fl(\\s\\S+)?")) {
                         ServiceMessage sm = new ServiceMessage(authKey);
@@ -204,6 +221,7 @@ public class NettyClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        logger.info("Closing application. Commandline is off.");
         channel.close();
     }
 

@@ -3,5 +3,6 @@ CREATE TABLE cloud_users (
 id serial,
 login text not null unique,
 password text not null,
+userfolder text not null unique,
 PRIMARY KEY(id));
-INSERT INTO cloud_users (login, password) VALUES ('qwerty', '827ccb0eea8a706c4c34a16891f84e7b');
+INSERT INTO cloud_users (login, password, userfolder) VALUES ('qwerty', '827ccb0eea8a706c4c34a16891f84e7b', '827ccb0eea8a706c4c34a16891f84e7b');

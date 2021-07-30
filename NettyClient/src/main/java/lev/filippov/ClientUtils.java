@@ -1,8 +1,6 @@
 package lev.filippov;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,7 +16,19 @@ import java.util.Objects;
 import static lev.filippov.Constants.*;
 
 public class ClientUtils {
-        private static final Logger logger = LogManager.getLogger(ClientUtils.class.getName());
+    private static final Logger logger = LogManager.getLogger(ClientUtils.class.getName());
+
+    static {
+        String clientFolder = NettyClient.getInstance().getCLIENT_FOLDER();
+        Path clientFolderPath = Paths.get(clientFolder);
+        if(!Files.exists(clientFolderPath)){
+            try {
+                Files.createDirectory(clientFolderPath);
+            } catch (IOException e) {
+                logger.error(e.getMessage());
+            }
+        }
+    }
 
 
     private static void checkFileMessageDatNonNull(FileMessage fm) throws IOException {
@@ -65,11 +75,12 @@ public class ClientUtils {
         ServiceMessage sm = new ServiceMessage(authKey);
         sm.setMessageType(MessageType.CREATE_FOLDER);
         StringBuilder remotePathBuilder = new StringBuilder(remotePath);
-        if (!remotePath.endsWith("/") && !remotePath.endsWith("\\")) {
+        if (!remotePath.endsWith("/") && !remotePath.endsWith("\\") && !remotePath.equals("")) {
             remotePathBuilder.append("\\");
         }
-        if (!localRelativePath.endsWith("/") && !localRelativePath.endsWith("\\")) {
-            remotePathBuilder.append(localRelativePath).append("\\");
+        remotePathBuilder.append(localRelativePath);
+        if (!localRelativePath.endsWith("/") && !localRelativePath.endsWith("\\")&& !localRelativePath.equals("")) {
+            remotePathBuilder.append("\\");
         }
         sm.getParametersMap().put(REMOTE_PATH, remotePathBuilder.toString());
         logger.info("Путь создания папки на сервере: " + sm.getParametersMap().get(REMOTE_PATH));
@@ -110,7 +121,7 @@ public class ClientUtils {
                     fileMessage.setPart(part++);
                     fileMessage.setBytes(bytes);
                     fileMessage.setRemotePath(remotePath);
-                    ChannelFuture f = channel.writeAndFlush(fileMessage).sync();
+                    channel.writeAndFlush(fileMessage).sync();
                     byteBuffer.clear();
                 }
 
@@ -144,7 +155,7 @@ public class ClientUtils {
     }
 
     protected static Path getLocalPath(String remotePath) {
-        return Paths.get(CLIENT_RELATIVE_PATH, remotePath);
+        return Paths.get(NettyClient.getInstance().getCLIENT_FOLDER(), remotePath);
     }
 
     public static void createDirectory(ServiceMessage msg) {

@@ -4,14 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.CharBuffer;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.sql.*;
 
 public class PersistanceBean {
 
@@ -20,7 +13,8 @@ public class PersistanceBean {
     private static String url;
     private static String user;
     private static String password;
-    private static String preparedStatement;
+    private static String isUserExistStatement;
+    private static String getUserFolderStatementByLogin;
     private static String initializeString;
 
 
@@ -34,7 +28,6 @@ public class PersistanceBean {
         try {
             connection = DriverManager.getConnection(url,user,password);
             connection.createStatement().execute(initializeString);
-            ps = connection.prepareStatement(preparedStatement);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
@@ -42,6 +35,7 @@ public class PersistanceBean {
 
     public static boolean isUserExist(String login, String password) {
         try {
+            ps=connection.prepareStatement(isUserExistStatement);
             ps.setString(1, login);
             ps.setString(2, password);
             return ps.execute();
@@ -49,6 +43,20 @@ public class PersistanceBean {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public static String getUserFolderPath(String login) {
+        String answer=null;
+        try {
+            ps = connection.prepareStatement(getUserFolderStatementByLogin);
+            ps.setString(1,login);
+            ResultSet resultSet = ps.executeQuery();
+            resultSet.next();
+            answer = resultSet.getString("userfolder");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return answer;
     }
 
     private static void initializeClassVariables(){
@@ -84,8 +92,11 @@ public class PersistanceBean {
                     case "url":
                         url = tokens[1];
                         break;
-                    case "preparedStatement":
-                        preparedStatement = tokens[1];
+                    case "preparedStatement1":
+                        isUserExistStatement = tokens[1];
+                        break;
+                    case "preparedStatement2":
+                        getUserFolderStatementByLogin = tokens[1];
                         break;
                     default:
                         System.out.println("Unknown variable");
