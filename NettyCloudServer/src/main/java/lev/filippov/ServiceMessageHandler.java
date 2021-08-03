@@ -2,9 +2,18 @@ package lev.filippov;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
+
+    private Logger logger;
+
+    public ServiceMessageHandler() {
+        super();
+        this.logger = LogManager.getLogger(this.getClass().getName());
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -33,7 +42,7 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        cause.printStackTrace();
+        logger.error(cause.getMessage());
         ctx.close();
     }
 }

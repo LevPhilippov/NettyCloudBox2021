@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
 
-<!--    <Properties>-->
-<!--        <Property name="basePath" value="JavaDeep6Testing/logs"/>-->
-<!--    </Properties>-->
+    <Properties>
+        <Property name="baseLoggerLevel" value="error"/>
+        <Property name="baseLoggerPath" value="logs\"/>
+    </Properties>
 
 
     <Appenders>
@@ -12,9 +13,9 @@
             <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
         </Console>
 
-<!--        <File name="FileAppender" fileName="${basePath}/logfile.log">-->
-<!--            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>-->
-<!--        </File>-->
+        <File name="FileAppender" fileName="${baseLoggerPath}/logfile.log">
+            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+        </File>
 
     </Appenders>
 
@@ -23,18 +24,21 @@
             <AppenderRef ref="STDOUT"/>
         </Root>
 
-        <Logger name="lev.filippov.Network" level="TRACE" additivity="false">
+        <Logger name="lev.filippov.ClientUtils" level="${baseLoggerLevel}" additivity="true">
             <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
         </Logger>
-        <Logger name="lev.filippov.ClientUtils" level="info" additivity="false">
+        <Logger name="lev.filippov.NettyClient" level="${baseLoggerLevel}" additivity="true">
             <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
         </Logger>
-        <Logger name="lev.filippov.NettyClient" level="info" additivity="false">
+        <Logger name="lev.filippov.ServiceMessageHandler" level="${baseLoggerLevel}" additivity="true">
             <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
         </Logger>
-
-        <Logger name="lev.filippov.ServiceMessageHandler" level="info" additivity="false">
+        <Logger name="lev.filippov.FileMessageHandler" level="${baseLoggerLevel}" additivity="true">
             <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
         </Logger>
     </Loggers>
 

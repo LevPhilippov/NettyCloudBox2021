@@ -22,14 +22,14 @@ public class ServiceMessageHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        autoLogIn(ctx);
+//        autoLogIn(ctx);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof AuthKey){
             client.setAuthKey((AuthKey) msg);
-            logger.info("Получен валидный экземпляр AuthKey.");
+            System.out.println("Регистрация пройдена.");
         }
         if (msg instanceof ServiceMessage) {
             ServiceMessage sm = (ServiceMessage) msg;

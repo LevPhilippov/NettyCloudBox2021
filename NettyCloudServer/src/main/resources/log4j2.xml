@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
 
-<!--    <Properties>-->
-<!--        <Property name="basePath" value="JavaDeep6Testing/logs"/>-->
-<!--    </Properties>-->
+    <Properties>
+        <Property name="baseloggerlevel" value="info"/>
+        <Property name="baseloggerpath" value="serverlogs\"/>
+    </Properties>
 
 
     <Appenders>
@@ -12,9 +13,9 @@
             <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
         </Console>
 
-<!--        <File name="FileAppender" fileName="${basePath}/logfile.log">-->
-<!--            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>-->
-<!--        </File>-->
+        <File name="FileAppender" fileName="${baseloggerpath}/logfile.log">
+            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+        </File>
 
     </Appenders>
 
@@ -23,8 +24,29 @@
             <AppenderRef ref="STDOUT"/>
         </Root>
 
-        <Logger name="lev.filippov.ServerUtils" level="info" additivity="false">
+        <Logger name="lev.filippov.ServerUtils" level="${baseloggerlevel}" additivity="false">
             <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        <Logger name="lev.filippov.MainServer" level="${baseloggerlevel}" additivity="false">
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        <Logger name="lev.filippov.PersistanceBean" level="${baseloggerlevel}" additivity="false">
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        <Logger name="lev.filippov.FileMessageHandler" level="${baseloggerlevel}" additivity="false">
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        <Logger name="lev.filippov.ServiceMessageHandler" level="${baseloggerlevel}" additivity="false">
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        <Logger name="lev.filippov.AuthHandler" level="${baseloggerlevel}" additivity="false">
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="FileAppender"/>
         </Logger>
     </Loggers>
 

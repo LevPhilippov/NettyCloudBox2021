@@ -48,13 +48,17 @@ public class ServerUtils {
                     Files.createDirectories(localPath.getParent());
                 Files.createFile(localPath);
                 System.out.printf("Начинается копирование файла %s", localPath.getFileName());
+            } if (msg.getPart().equals(msg.getParts())) {
+                ServiceMessage sm = new ServiceMessage(msg.getAuthKey());
+                sm.setMessageType(MessageType.MESSAGE);
+                sm.getParametersMap().put(MESSAGE, String.format("Файл успешно скопирован по адресу %s.", msg.getRemotePath()));
             }
 
             System.out.println("Получена часть " + msg.getPart() + " из " + msg.getParts());
             Files.write(localPath, msg.getBytes(), StandardOpenOption.APPEND);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
     }
 
@@ -98,7 +102,7 @@ public class ServerUtils {
                         try {
                             ctx.writeAndFlush(msg).sync();
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            logger.error(e.getMessage());
                         }
                         return FileVisitResult.CONTINUE;
                     }
@@ -126,7 +130,7 @@ public class ServerUtils {
         try {
             size = Files.size(localPath);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         //quantity of parts
         parts = (size % MAX_BYTE_ARRAY_SIZE > 0) ? size / MAX_BYTE_ARRAY_SIZE : size / MAX_BYTE_ARRAY_SIZE + 1;
@@ -205,14 +209,14 @@ public class ServerUtils {
             try {
                 ctx.writeAndFlush(msg).sync();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             }
         } else {
             try {
                 logger.info("Попытка создать папку по адресу " + localPath);
                 Files.createDirectory(localPath);
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             }
         }
     }
@@ -237,7 +241,7 @@ public class ServerUtils {
                     }
                 });
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             }
         }
         sendServiceMessage(ctx, msg, "Files deleted!");

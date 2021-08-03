@@ -1,9 +1,13 @@
 package lev.filippov;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.CharBuffer;
+import java.nio.file.Paths;
 import java.sql.*;
 
 public class PersistanceBean {
@@ -16,9 +20,15 @@ public class PersistanceBean {
     private static String isUserExistStatement;
     private static String getUserFolderStatementByLogin;
     private static String initializeString;
+    private static final Logger logger;
+//    private static String jdbcConstructPath = "NettyCloudServer\\src\\main\\resources\\jdbc.construct";
+//    private static String jdbcPropertiesPath = "NettyCloudServer\\src\\main\\resources\\jdbc.properties";
+    private static String jdbcConstructPath = "setting\\jdbc.construct";
+    private static String jdbcPropertiesPath = "setting\\jdbc.properties";
 
 
     static {
+        logger = LogManager.getLogger(PersistanceBean.class.getName());
         initializeClassVariables();
         try {
             Class.forName("org.postgresql.Driver");
@@ -29,7 +39,7 @@ public class PersistanceBean {
             connection = DriverManager.getConnection(url,user,password);
             connection.createStatement().execute(initializeString);
         } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            logger.error(throwables.getMessage());
         }
     }
 
@@ -40,7 +50,7 @@ public class PersistanceBean {
             ps.setString(2, password);
             return ps.execute();
         }catch (SQLException e){
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return false;
     }
@@ -54,7 +64,7 @@ public class PersistanceBean {
             resultSet.next();
             answer = resultSet.getString("userfolder");
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return answer;
     }
@@ -63,7 +73,7 @@ public class PersistanceBean {
         StringBuilder sqlQuery = new StringBuilder();
 
         try {
-            FileReader fileReader = new FileReader("NettyCloudServer\\src\\main\\resources\\jdbc.construct");
+            FileReader fileReader = new FileReader(jdbcConstructPath);
             int i;
             CharBuffer buffer = CharBuffer.allocate(50);
             while (fileReader.read(buffer) !=-1) {
@@ -77,7 +87,7 @@ public class PersistanceBean {
         }
 
         try {
-            BufferedReader br = new BufferedReader(new FileReader("NettyCloudServer\\src\\main\\resources\\jdbc.properties"));
+            BufferedReader br = new BufferedReader(new FileReader(jdbcPropertiesPath));
             String line;
             while((line = br.readLine())!=null) {
                 String[] tokens = line.split("\\s",2);
@@ -105,14 +115,21 @@ public class PersistanceBean {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
-//        System.out.println(statement);
-//        System.out.println(url);
-//        System.out.println(user);
-//        System.out.println(password);
-//        System.out.println(initializeString);
+    }
+
+    public static void printCurrentSettings(){
+        System.out.println("-----Settings-----");
+        System.out.printf("System construction file path is %s\n", Paths.get(jdbcConstructPath).toAbsolutePath());
+        System.out.printf("System properties file path is %s\n", Paths.get(jdbcPropertiesPath).toAbsolutePath());
+        System.out.printf("System path is %s\n", Paths.get(jdbcConstructPath).toAbsolutePath());
+        System.out.printf("JDBC user is %s\n", user);
+        System.out.printf("JDBC password is %s\n", password);
+        System.out.printf("JDBC url is %s\n", url);
+        System.out.printf("JDBC reconstruction data:\n %s\n", initializeString);
+
     }
 
 
