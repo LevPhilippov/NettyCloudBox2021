@@ -39,7 +39,19 @@ public class ClientUtils {
             throw new IOException("Path is null!");
         }
     }
-
+    /**
+     * Method defines either file or folder structure are requested to upload.
+     * In case of file it builds a path composed of server folder where client wants to put this file and file name and writes
+     * it into ctx.
+     * In case of folder structure it walks file tree and builds complex path composed of server folder where client wants
+     * to put the origin folder, walked path and file name and writes it to ctx.
+     * Before writing files the method requests server to create all the directories of file tree.
+     * @param localPath describes path to file into client file system.
+     * @param remotePath describes path to place where file(origin folder) is requested to put.
+     * @param authKey authorisation key, earned after authorisation procedure. Key is creating      *
+     *
+     *
+     * */
     static void writeToChannelManager(Channel channel, String localPath, String remotePath, AuthKey authKey){
         Path systemLocalPath = getLocalPath(localPath);
         if (!Files.exists(systemLocalPath)) {
@@ -70,7 +82,12 @@ public class ClientUtils {
             writeFileToChannel(channel, systemLocalPath, remotePath + systemLocalPath.getFileName(), authKey);
         }
     }
-
+    /**
+     * Method requests server side to create a folder into user's space using
+     *@param localRelativePath describes the path to file into client file space. If folder are creating by user request
+     *                         (not by writeToChannel method - this param is name of folder you are creating)
+     * @param remotePath describes the path to file into remote users file space
+     * */
     static void createRemoteDirectory(Channel channel, String localRelativePath, String remotePath, AuthKey authKey) {
         ServiceMessage sm = new ServiceMessage(authKey);
         sm.setMessageType(MessageType.CREATE_FOLDER);
@@ -91,6 +108,11 @@ public class ClientUtils {
         }
     }
 
+    /**
+     * Method writes file to channel using chunk-driven way.
+     *@param  localPath the path to file into client file space.
+     * @param remotePath describes the path to file into remote users file space.
+     * */
 
     static void writeFileToChannel(Channel channel, Path localPath, String remotePath, AuthKey authKey) {
         Long part=null;
@@ -157,6 +179,7 @@ public class ClientUtils {
     protected static Path getLocalPath(String remotePath) {
         return Paths.get(NettyClient.getInstance().getCLIENT_FOLDER(), remotePath);
     }
+
 
     public static void createDirectory(ServiceMessage msg) {
         Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH));

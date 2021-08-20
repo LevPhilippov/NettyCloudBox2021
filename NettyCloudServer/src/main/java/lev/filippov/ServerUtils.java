@@ -36,7 +36,14 @@ public class ServerUtils {
             throw new IOException("Path is null!");
         }
     }
-
+    /**
+     * Method writes useful data from FileMessage object, received from ChannelHandlerContext to file.
+     * A FileMessage has to contain a complex path points on place where to save a data.
+     * @author Lev Philippov
+     * @param msg Message containing useful data to write, received from FileMessageHandler.
+     * @see lev.filippov.FileMessageHandler
+     * @throws IOException
+     * */
     static void getFromChannelToFile(FileMessage msg) {
         try {
             checkFileMessageDatNonNull(msg);
@@ -66,7 +73,15 @@ public class ServerUtils {
             String userFolder = PersistanceBean.getUserFolderPath(authKey.getLogin());
             return Objects.isNull(localPath) ? Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH(),userFolder) : Paths.get(MainServer.getInstance().getSERVER_RELATIVE_PATH(), userFolder,localPath);
     }
-
+    /**
+    Method handle ServiceMessage from ServiceMessageHandler by defining what is asking either file or file structure with embedded folders.
+     If case of file method starts writing requested file to ChannelHandlerContext.
+     In case of file structure before writing files the method walks file tree starting from folder is requested
+     and before writing files requests client to create folder structure for each.
+     @param ctx ChannelHandlerContext from channel's pipeline.
+     @param msg ServiceMessage which contains request.
+     @see ServiceMessageHandler
+     */
     static void writeToChannelManager(ChannelHandlerContext ctx, ServiceMessage msg) {
         Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
         //если запрашивается файл
@@ -174,8 +189,12 @@ public class ServerUtils {
             e.printStackTrace();
         }
     }
-
-    public static void sendFilesListManager(ChannelHandlerContext ctx, ServiceMessage sm) {
+    /**
+     * Method calls by ServiceMessageHandler in case of files list request is came up. Wrap list of files in its paramsMap
+     * and send is back to the client.
+     * @param sm ServiceMessage which wraps List of files in its paramsMap HashMap.
+     * */
+    static void sendFilesListManager(ChannelHandlerContext ctx, ServiceMessage sm) {
         Path path = getLocalPath((String) sm.getParametersMap().get(REMOTE_PATH),sm.getAuthKey());
 
         if (!Files.exists(path)) {
@@ -200,8 +219,10 @@ public class ServerUtils {
         }
         return filesList;
     }
-
-    public static void createFolder(ChannelHandlerContext ctx, ServiceMessage msg) {
+    /**
+     * Method creates folder or folders by clients request in an individual client folder.
+     * */
+    static void createFolder(ChannelHandlerContext ctx, ServiceMessage msg) {
         Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
         if(Files.exists(localPath)){
             msg.setMessageType(MessageType.MESSAGE);
@@ -221,7 +242,10 @@ public class ServerUtils {
         }
     }
 
-    public static void remove(ChannelHandlerContext ctx, ServiceMessage msg) {
+    /**
+     * Method removes files of folders by clients request in an individual client folder.
+     * */
+    static void remove(ChannelHandlerContext ctx, ServiceMessage msg) {
         Path localPath = getLocalPath((String) msg.getParametersMap().get(REMOTE_PATH), msg.getAuthKey());
         if (!Files.exists(localPath)) {
             sendServiceMessage(ctx, msg, String.format("Folder or file %1$s not exist!", (String) msg.getParametersMap().get(REMOTE_PATH)));
@@ -247,7 +271,10 @@ public class ServerUtils {
         sendServiceMessage(ctx, msg, "Files deleted!");
     }
 
-    public static void createUserFolder(String login) {
+    /**
+     * Method removes files of folders by clients request in an individual client folder.
+     * */
+    static void createUserFolder(String login) {
         String userFolder = PersistanceBean.getUserFolderPath(login);
         if (Objects.isNull(userFolder)){
             try {
